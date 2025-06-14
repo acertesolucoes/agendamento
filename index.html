@@ -10,26 +10,94 @@
       padding: 20px;
       max-width: 500px;
       margin: auto;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f4f4f4;
     }
-    input, button {
-      width: 100%;
+    h2, h3 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    form {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    input[type="text"],
+    input[type="date"],
+    input[type="time"],
+    button {
+      width: calc(100% - 22px); /* Ajuste para padding */
       padding: 10px;
-      margin: 6px 0;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
       font-size: 1rem;
+      box-sizing: border-box; /* Garante que padding não aumente a largura */
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+    button:hover:not(:disabled) {
+      background-color: #45a049;
+    }
+    button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+    }
+    #linkAgenda, #feedbackMessage {
+      background: #e0f2f7;
+      padding: 15px;
+      border-left: 5px solid #2196F3;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      word-break: break-all;
+    }
+    #feedbackMessage.success {
+        background-color: #d4edda;
+        color: #155724;
+        border-color: #28a745;
+    }
+    #feedbackMessage.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border-color: #dc3545;
+    }
+    #feedbackMessage.info {
+        background-color: #e2e3e5;
+        color: #383d41;
+        border-color: #d6d8db;
     }
     .agendamentos {
       margin-top: 20px;
     }
     .item {
-      background: #f1f1f1;
-      padding: 10px;
+      background: #fff;
+      padding: 15px;
       margin-bottom: 10px;
       border-left: 4px solid #4CAF50;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .item strong {
+      color: #4CAF50;
+      display: block;
+      margin-bottom: 5px;
     }
     a {
-      word-break: break-all;
-      display: block;
-      margin-top: 10px;
+      color: #007bff;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -40,69 +108,163 @@
     <input type="date" id="data" required />
     <input type="time" id="hora" required />
     <input type="text" id="local" placeholder="Local" required />
-    <button type="submit">Gerar Link e Salvar</button>
+    <button type="submit" id="submitButton">Gerar Link e Salvar</button>
   </form>
 
   <div id="linkAgenda"></div>
+  <div id="feedbackMessage"></div>
 
   <h3>Agendamentos Registrados</h3>
   <div id="agendamentos" class="agendamentos"></div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxquYzOzUG1-59sjXR6H7Irc6BEXGu96GZgvl35BunqZftx1G1B-91fDNaqlVixe-E/exec";
+    // ESTA É A SUA NOVA API_URL
+    const API_URL = "https://script.google.com/macros/s/AKfycbwuQt8Xog6e3t75rs5jOd2yzXvi-B3XPN3e986KsKvRhKV2rE7aCqKt4S2qQzfE31C/exec";
 
-    document.getElementById("form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const consultor = document.getElementById("consultor").value;
-      const data = document.getElementById("data").value;
-      const hora = document.getElementById("hora").value;
-      const local = document.getElementById("local").value;
+    const form = document.getElementById("form");
+    const consultorInput = document.getElementById("consultor");
+    const dataInput = document.getElementById("data");
+    const horaInput = document.getElementById("hora");
+    const localInput = document.getElementById("local");
+    const linkAgendaDiv = document.getElementById("linkAgenda");
+    const agendamentosContainer = document.getElementById("agendamentos");
+    const feedbackMessageDiv = document.getElementById("feedbackMessage");
+    const submitButton = document.getElementById("submitButton");
 
-      const body = { consultor, data, hora, local };
+    // Função para mostrar mensagens de feedback ao usuário
+    function showFeedback(message, type = 'info') {
+      feedbackMessageDiv.textContent = message;
+      feedbackMessageDiv.className = ''; // Limpa classes existentes
+      feedbackMessageDiv.classList.add(type); // Adiciona tipo (success, error, info)
+      feedbackMessageDiv.style.display = 'block'; // Garante que a mensagem é visível
+      setTimeout(() => {
+        feedbackMessageDiv.style.display = 'none'; // Esconde a mensagem após 5 segundos
+      }, 5000);
+    }
 
-      // Envia para o Google Sheets
-      await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify(body),
-        headers: { "Content-Type": "application/json" },
-      });
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault(); // Impede o comportamento padrão de recarregar a página
+      submitButton.disabled = true; // Desabilita o botão para evitar múltiplos envios
+      showFeedback('Salvando agendamento...', 'info'); // Feedback de carregamento
 
-      // Gera link para o Google Agenda
-      const titulo = encodeURIComponent(`Agendamento com ${consultor}`);
-      const localUrl = encodeURIComponent(local);
-      const dataHoraInicio = new Date(`${data}T${hora}`);
-      const dataHoraFim = new Date(dataHoraInicio.getTime() + 30 * 60000); // +30 minutos
-      const inicio = dataHoraInicio.toISOString().replace(/-|:|\.\d+/g, "");
-      const fim = dataHoraFim.toISOString().replace(/-|:|\.\d+/g, "");
+      const consultor = consultorInput.value;
+      const data = dataInput.value;
+      const hora = horaInput.value;
+      const local = localInput.value;
 
-      const urlAgenda = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=${inicio}/${fim}&location=${localUrl};`
+      // Cria o objeto JavaScript que será enviado como JSON.
+      // As chaves aqui (consultor, data, hora, local) são TODAS em MINÚSCULAS
+      // para consistência com como o Apps Script (doPost) as espera.
+      const body = {
+        consultor: consultor,
+        data: data,
+        hora: hora,
+        local: local
+      };
 
-      document.getElementById("linkAgenda").innerHTML = `
-        <p>Link para adicionar na agenda:</p>
-        <a href="${urlAgenda}" target="_blank">${urlAgenda}</a>
-      `;
+      try {
+        // Envia os dados para o Google Apps Script via POST
+        const response = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify(body), // Converte o objeto JS em string JSON
+          headers: { "Content-Type": "application/json" }, // Informa ao servidor que o corpo é JSON
+        });
 
-      e.target.reset();
-      carregarAgendamentos();
+        // Verifica se a resposta HTTP foi bem-sucedida (status 200-299)
+        if (!response.ok) {
+            throw new Error(Erro de rede ou servidor: ${response.status} ${response.statusText});
+        }
+
+        const result = await response.json(); // Tenta parsear a resposta do Apps Script como JSON
+
+        // Verifica o status retornado pelo próprio Apps Script (ex: 'salvo' ou 'erro')
+        if (result.status === 'salvo') {
+          showFeedback('Agendamento salvo com sucesso!', 'success');
+
+          // Gera o link para o Google Agenda
+          const titulo = encodeURIComponent(Agendamento com ${consultor});
+          const localUrl = encodeURIComponent(local);
+          const dataHoraInicio = new Date(${data}T${hora});
+          const dataHoraFim = new Date(dataHoraInicio.getTime() + 30 * 60000); // Adiciona 30 minutos
+          // Formata as datas para o padrão do Google Agenda (YYYYMMDDTHHMMSSZ)
+          const inicio = dataHoraInicio.toISOString().replace(/-|:|\.\d+/g, "");
+          const fim = dataHoraFim.toISOString().replace(/-|:|\.\d+/g, "");
+
+          const urlAgenda = https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=${inicio}/${fim}&location=${localUrl};
+
+          linkAgendaDiv.innerHTML = `
+            <p>Link para adicionar na agenda:</p>
+            <a href="${urlAgenda}" target="_blank">${urlAgenda}</a>
+          `;
+
+          form.reset(); // Limpa os campos do formulário
+          carregarAgendamentos(); // Recarrega a lista de agendamentos para mostrar o novo
+        } else {
+          // Se o Apps Script retornou um status de erro
+          showFeedback(Erro ao salvar: ${result.message || 'Erro desconhecido'}, 'error');
+          console.error("Erro retornado pelo Apps Script:", result);
+        }
+
+      } catch (error) {
+        // Captura erros de rede ou erros no fetch/parsing da resposta
+        showFeedback('Erro de comunicação. Verifique sua conexão ou a API.', 'error');
+        console.error("Erro na requisição fetch (POST):", error);
+      } finally {
+        submitButton.disabled = false; // Reabilita o botão, independentemente do sucesso ou falha
+      }
     });
 
     async function carregarAgendamentos() {
-      const res = await fetch(API_URL);
-      const data = await res.json();
-      const container = document.getElementById("agendamentos");
-      container.innerHTML = "";
-      data.reverse().forEach(item => {
-        container.innerHTML += `
-          <div class="item">
-            <strong>${item.Consultor}</strong><br>
-            Data: ${item.Data}<br>
-            Hora: ${item.Hora}<br>
-            Local: ${item.Local}
-          </div>
-        `;
-      });
+      agendamentosContainer.innerHTML = 'Carregando agendamentos...'; // Feedback de carregamento
+      try {
+        const res = await fetch(API_URL); // Faz a requisição GET para o Apps Script
+        
+        // Verifica se a resposta HTTP foi bem-sucedida (status 200-299)
+        if (!res.ok) {
+          throw new Error(Erro HTTP: ${res.status} ${res.statusText});
+        }
+
+        const data = await res.json(); // Tenta parsear a resposta como JSON
+
+        // Se o Apps Script retornou um objeto com status 'erro' (pode acontecer na função doGet também)
+        if (data && data.status === 'erro') { 
+            showFeedback(Erro ao carregar: ${data.message || 'Erro desconhecido'}, 'error');
+            agendamentosContainer.innerHTML = 'Não foi possível carregar os agendamentos.';
+            return;
+        }
+
+        agendamentosContainer.innerHTML = ""; // Limpa o conteúdo antes de adicionar novos itens
+
+        // Percorre os itens e os exibe.
+        // O NOME DAS PROPRIEDADES AQUI (item.Consultor, item.Data, etc.)
+        // DEVEM CORRESPONDER EXATAMENTE AOS CABEÇALHOS DAS COLUNAS NA SUA PLANILHA DO GOOGLE SHEETS.
+        // Ex: Se sua planilha tem a coluna "Consultor", use item.Consultor.
+        // Se ela tem "Nome Consultor", use item["Nome Consultor"].
+        // A função doGet do Apps Script retorna as chaves com base nos CABEÇALHOS DA PLANILHA.
+        if (data.length > 0) {
+            data.reverse().forEach(item => { // Usa reverse() para mostrar os mais recentes primeiro
+              agendamentosContainer.innerHTML += `
+                <div class="item">
+                  <strong>${item.Consultor || 'Não Informado'}</strong><br>
+                  Data: ${item.Data || 'Não Informada'}<br>
+                  Hora: ${item.Hora || 'Não Informada'}<br>
+                  Local: ${item.Local || 'Não Informado'}
+                </div>
+              `;
+            });
+        } else {
+            agendamentosContainer.innerHTML = '<p>Nenhum agendamento registrado ainda.</p>';
+        }
+
+      } catch (error) {
+        // Captura erros de rede ou falha ao parsear JSON
+        showFeedback('Erro ao carregar agendamentos. Verifique sua conexão ou a API.', 'error');
+        agendamentosContainer.innerHTML = 'Erro ao carregar agendamentos.';
+        console.error("Erro na requisição fetch (GET):", error);
+      }
     }
 
+    // Chama a função para carregar agendamentos assim que a página é carregada
     carregarAgendamentos();
   </script>
 </body>
