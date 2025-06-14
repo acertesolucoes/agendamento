@@ -30,13 +30,13 @@
     input[type="date"],
     input[type="time"],
     button {
-      width: calc(100% - 22px); /* Ajuste para padding */
+      width: calc(100% - 22px);
       padding: 10px;
       margin: 8px 0;
       border: 1px solid #ddd;
       border-radius: 4px;
       font-size: 1rem;
-      box-sizing: border-box; /* Garante que padding não aumente a largura */
+      box-sizing: border-box;
     }
     button {
       background-color: #4CAF50;
@@ -50,8 +50,8 @@
       background-color: #45a049;
     }
     button:disabled {
-        background-color: #cccccc;
-        cursor: not-allowed;
+      background-color: #cccccc;
+      cursor: not-allowed;
     }
     #linkAgenda, #feedbackMessage {
       background: #e0f2f7;
@@ -59,22 +59,22 @@
       border-left: 5px solid #2196F3;
       margin-bottom: 20px;
       border-radius: 4px;
-      word-break: break-all;
+      word-break: break-word;
     }
     #feedbackMessage.success {
-        background-color: #d4edda;
-        color: #155724;
-        border-color: #28a745;
+      background-color: #d4edda;
+      color: #155724;
+      border-color: #28a745;
     }
     #feedbackMessage.error {
-        background-color: #f8d7da;
-        color: #721c24;
-        border-color: #dc3545;
+      background-color: #f8d7da;
+      color: #721c24;
+      border-color: #dc3545;
     }
     #feedbackMessage.info {
-        background-color: #e2e3e5;
-        color: #383d41;
-        border-color: #d6d8db;
+      background-color: #e2e3e5;
+      color: #383d41;
+      border-color: #d6d8db;
     }
     .agendamentos {
       margin-top: 20px;
@@ -118,9 +118,6 @@
   <div id="agendamentos" class="agendamentos"></div>
 
   <script>
-    // ESTA É A SUA NOVA API_URL
-    const API_URL = "https://script.google.com/macros/s/AKfycbwuQt8Xog6e3t75rs5jOd2yzXvi-B3XPN3e986KsKvRhKV2rE7aCqKt4S2qQzfE31C/exec";
-
     const form = document.getElementById("form");
     const consultorInput = document.getElementById("consultor");
     const dataInput = document.getElementById("data");
@@ -131,141 +128,105 @@
     const feedbackMessageDiv = document.getElementById("feedbackMessage");
     const submitButton = document.getElementById("submitButton");
 
-    // Função para mostrar mensagens de feedback ao usuário
     function showFeedback(message, type = 'info') {
       feedbackMessageDiv.textContent = message;
-      feedbackMessageDiv.className = ''; // Limpa classes existentes
-      feedbackMessageDiv.classList.add(type); // Adiciona tipo (success, error, info)
-      feedbackMessageDiv.style.display = 'block'; // Garante que a mensagem é visível
+      feedbackMessageDiv.className = '';
+      feedbackMessageDiv.classList.add(type);
+      feedbackMessageDiv.style.display = 'block';
       setTimeout(() => {
-        feedbackMessageDiv.style.display = 'none'; // Esconde a mensagem após 5 segundos
+        feedbackMessageDiv.style.display = 'none';
       }, 5000);
     }
 
     form.addEventListener("submit", async (e) => {
-      e.preventDefault(); // Impede o comportamento padrão de recarregar a página
-      submitButton.disabled = true; // Desabilita o botão para evitar múltiplos envios
-      showFeedback('Salvando agendamento...', 'info'); // Feedback de carregamento
+      e.preventDefault();
+      submitButton.disabled = true;
+      showFeedback('Salvando agendamento...', 'info');
 
       const consultor = consultorInput.value;
       const data = dataInput.value;
       const hora = horaInput.value;
       const local = localInput.value;
 
-      // Cria o objeto JavaScript que será enviado como JSON.
-      // As chaves aqui (consultor, data, hora, local) são TODAS em MINÚSCULAS
-      // para consistência com como o Apps Script (doPost) as espera.
       const body = {
-        consultor: consultor,
-        data: data,
-        hora: hora,
-        local: local
+        consultor,
+        data,
+        hora,
+        local
       };
 
       try {
-        // Envia os dados para o Google Apps Script via POST
-        const response = await fetch(API_URL, {
+        const response = await fetch("/api/agendar", {
           method: "POST",
-          body: JSON.stringify(body), // Converte o objeto JS em string JSON
-          headers: { "Content-Type": "application/json" }, // Informa ao servidor que o corpo é JSON
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
         });
 
-        // Verifica se a resposta HTTP foi bem-sucedida (status 200-299)
-        if (!response.ok) {
-            throw new Error(`Erro de rede ou servidor: ${response.status} ${response.statusText}`);
-        }
+        const result = await response.json();
 
-        const result = await response.json(); // Tenta parsear a resposta do Apps Script como JSON
-
-        // Verifica o status retornado pelo próprio Apps Script (ex: 'salvo' ou 'erro')
         if (result.status === 'salvo') {
           showFeedback('Agendamento salvo com sucesso!', 'success');
 
-          // Gera o link para o Google Agenda
           const titulo = encodeURIComponent(`Agendamento com ${consultor}`);
           const localUrl = encodeURIComponent(local);
           const dataHoraInicio = new Date(`${data}T${hora}`);
-          const dataHoraFim = new Date(dataHoraInicio.getTime() + 30 * 60000); // Adiciona 30 minutos
-          // Formata as datas para o padrão do Google Agenda (YYYYMMDDTHHMMSSZ)
+          const dataHoraFim = new Date(dataHoraInicio.getTime() + 30 * 60000);
           const inicio = dataHoraInicio.toISOString().replace(/-|:|\.\d+/g, "");
           const fim = dataHoraFim.toISOString().replace(/-|:|\.\d+/g, "");
 
-          const urlAgenda = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=${inicio}/${fim}&location=${localUrl};`
+          const urlAgenda = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=${inicio}/${fim}&location=${localUrl}`;
 
           linkAgendaDiv.innerHTML = `
             <p>Link para adicionar na agenda:</p>
             <a href="${urlAgenda}" target="_blank">${urlAgenda}</a>
           `;
 
-          form.reset(); // Limpa os campos do formulário
-          carregarAgendamentos(); // Recarrega a lista de agendamentos para mostrar o novo
+          form.reset();
         } else {
-          // Se o Apps Script retornou um status de erro
           showFeedback(`Erro ao salvar: ${result.message || 'Erro desconhecido'}`, 'error');
-          console.error("Erro retornado pelo Apps Script:", result);
+          console.error("Erro Apps Script:", result);
         }
 
       } catch (error) {
-        // Captura erros de rede ou erros no fetch/parsing da resposta
         showFeedback('Erro de comunicação. Verifique sua conexão ou a API.', 'error');
-        console.error("Erro na requisição fetch (POST):", error);
+        console.error("Erro na requisição:", error);
       } finally {
-        submitButton.disabled = false; // Reabilita o botão, independentemente do sucesso ou falha
+        submitButton.disabled = false;
       }
     });
 
+    // O código abaixo pode ser habilitado se você criar /api/agendamentos futuramente
+    /*
     async function carregarAgendamentos() {
-      agendamentosContainer.innerHTML = 'Carregando agendamentos...'; // Feedback de carregamento
+      agendamentosContainer.innerHTML = 'Carregando agendamentos...';
       try {
-        const res = await fetch(API_URL); // Faz a requisição GET para o Apps Script
-        
-        // Verifica se a resposta HTTP foi bem-sucedida (status 200-299)
-        if (!res.ok) {
-          throw new Error(`Erro HTTP: ${res.status} ${res.statusText}`);
-        }
+        const res = await fetch("/api/agendamentos");
+        const data = await res.json();
 
-        const data = await res.json(); // Tenta parsear a resposta como JSON
-
-        // Se o Apps Script retornou um objeto com status 'erro' (pode acontecer na função doGet também)
-        if (data && data.status === 'erro') { 
-            showFeedback(`Erro ao carregar: ${data.message || 'Erro desconhecido'}`, 'error');
-            agendamentosContainer.innerHTML = 'Não foi possível carregar os agendamentos.';
-            return;
-        }
-
-        agendamentosContainer.innerHTML = ""; // Limpa o conteúdo antes de adicionar novos itens
-
-        // Percorre os itens e os exibe.
-        // O NOME DAS PROPRIEDADES AQUI (item.Consultor, item.Data, etc.)
-        // DEVEM CORRESPONDER EXATAMENTE AOS CABEÇALHOS DAS COLUNAS NA SUA PLANILHA DO GOOGLE SHEETS.
-        // Ex: Se sua planilha tem a coluna "Consultor", use item.Consultor.
-        // Se ela tem "Nome Consultor", use item["Nome Consultor"].
-        // A função doGet do Apps Script retorna as chaves com base nos CABEÇALHOS DA PLANILHA.
         if (data.length > 0) {
-            data.reverse().forEach(item => { // Usa reverse() para mostrar os mais recentes primeiro
-              agendamentosContainer.innerHTML += `
-                <div class="item">
-                  <strong>${item.Consultor || 'Não Informado'}</strong><br>
-                  Data: ${item.Data || 'Não Informada'}<br>
-                  Hora: ${item.Hora || 'Não Informada'}<br>
-                  Local: ${item.Local || 'Não Informado'}
-                </div>
-              `;
-            });
+          agendamentosContainer.innerHTML = "";
+          data.reverse().forEach(item => {
+            agendamentosContainer.innerHTML += `
+              <div class="item">
+                <strong>${item.Consultor || 'Não Informado'}</strong><br>
+                Data: ${item.Data || 'Não Informada'}<br>
+                Hora: ${item.Hora || 'Não Informada'}<br>
+                Local: ${item.Local || 'Não Informado'}
+              </div>
+            `;
+          });
         } else {
-            agendamentosContainer.innerHTML = '<p>Nenhum agendamento registrado ainda.</p>';
+          agendamentosContainer.innerHTML = '<p>Nenhum agendamento registrado ainda.</p>';
         }
 
       } catch (error) {
-        // Captura erros de rede ou falha ao parsear JSON
-        showFeedback('Erro ao carregar agendamentos. Verifique sua conexão ou a API.', 'error');
-        agendamentosContainer.innerHTML = 'Erro ao carregar agendamentos.';
-        console.error("Erro na requisição fetch (GET):", error);
+        showFeedback('Erro ao carregar agendamentos.', 'error');
+        console.error("Erro ao carregar:", error);
       }
     }
 
-    // Chama a função para carregar agendamentos assim que a página é carregada
-    carregarAgendamentos();
+    // carregarAgendamentos();
+    */
   </script>
 </body>
 </html>
