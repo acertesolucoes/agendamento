@@ -76,28 +76,17 @@
       color: #383d41;
       border-color: #d6d8db;
     }
-    .agendamentos {
-      margin-top: 20px;
-    }
-    .item {
-      background: #fff;
-      padding: 15px;
-      margin-bottom: 10px;
-      border-left: 4px solid #4CAF50;
+    .copy-btn {
+      margin-top: 10px;
+      padding: 6px 12px;
+      background-color: #2196F3;
+      color: #fff;
+      border: none;
       border-radius: 4px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      cursor: pointer;
     }
-    .item strong {
-      color: #4CAF50;
-      display: block;
-      margin-bottom: 5px;
-    }
-    a {
-      color: #007bff;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
+    .copy-btn:hover {
+      background-color: #1976D2;
     }
   </style>
 </head>
@@ -113,11 +102,7 @@
   </form>
 
   <div id="linkAgenda"></div>
-  <button id="copyButton" style="display:none">Copiar Link</button>
   <div id="feedbackMessage"></div>
-
-  <h3>Agendamentos Registrados</h3>
-  <div id="agendamentos" class="agendamentos"></div>
 
   <script>
     const form = document.getElementById("form");
@@ -127,8 +112,6 @@
     const horaInput = document.getElementById("hora");
     const localInput = document.getElementById("local");
     const linkAgendaDiv = document.getElementById("linkAgenda");
-    const copyButton = document.getElementById("copyButton");
-    const agendamentosContainer = document.getElementById("agendamentos");
     const feedbackMessageDiv = document.getElementById("feedbackMessage");
     const submitButton = document.getElementById("submitButton");
 
@@ -140,11 +123,6 @@
       setTimeout(() => {
         feedbackMessageDiv.style.display = 'none';
       }, 5000);
-    }
-
-    async function encurtarLink(url) {
-      const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`);
-      return await res.text();
     }
 
     form.addEventListener("submit", async (e) => {
@@ -176,25 +154,16 @@
           const localUrl = encodeURIComponent(local);
           const dataHoraInicio = new Date(`${data}T${hora}`);
           const dataHoraFim = new Date(dataHoraInicio.getTime() + 30 * 60000);
-          const inicio = dataHoraInicio.toISOString().replace(/-|:|\.\d+/g, "");
-          const fim = dataHoraFim.toISOString().replace(/-|:|\.\d+/g, "");
+          const inicio = dataHoraInicio.toISOString().replace(/[-:]|\.\d+/g, "");
+          const fim = dataHoraFim.toISOString().replace(/[-:]|\.\d+/g, "");
 
           const urlAgenda = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=${inicio}/${fim}&location=${localUrl}`;
-          const linkEncurtado = await encurtarLink(urlAgenda);
 
           linkAgendaDiv.innerHTML = `
             <p>Link para adicionar na agenda:</p>
-            <a href="${linkEncurtado}" target="_blank">${linkEncurtado}</a>
+            <a href="${urlAgenda}" target="_blank">${urlAgenda}</a>
+            <button class="copy-btn" onclick="navigator.clipboard.writeText('${urlAgenda}')">Copiar Link</button>
           `;
-
-          copyButton.style.display = 'inline-block';
-          copyButton.onclick = () => {
-            navigator.clipboard.writeText(linkEncurtado).then(() => {
-              showFeedback("Link copiado para a área de transferência!", "success");
-            }).catch(() => {
-              showFeedback("Falha ao copiar o link.", "error");
-            });
-          };
 
           form.reset();
         } else {
