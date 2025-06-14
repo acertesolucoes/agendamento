@@ -10,14 +10,10 @@
       padding: 20px;
       max-width: 500px;
       margin: auto;
-      line-height: 1.6;
-      color: #333;
       background-color: #f4f4f4;
     }
     h2, h3 {
-      color: #333;
       text-align: center;
-      margin-bottom: 20px;
     }
     form {
       background: #fff;
@@ -26,75 +22,56 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       margin-bottom: 20px;
     }
-    input[type="text"],
-    input[type="date"],
-    input[type="time"],
-    button {
-      width: calc(100% - 22px);
+    input, button {
+      width: 100%;
       padding: 10px;
       margin: 8px 0;
       border: 1px solid #ddd;
       border-radius: 4px;
       font-size: 1rem;
-      box-sizing: border-box;
     }
     button {
       background-color: #4CAF50;
       color: white;
       border: none;
-      cursor: pointer;
       font-weight: bold;
-      transition: background-color 0.3s ease;
+      cursor: pointer;
     }
-    button:hover:not(:disabled) {
+    button:hover {
       background-color: #45a049;
-    }
-    button:disabled {
-      background-color: #cccccc;
-      cursor: not-allowed;
     }
     #linkAgenda, #feedbackMessage {
       background: #e0f2f7;
       padding: 15px;
       border-left: 5px solid #2196F3;
-      margin-bottom: 20px;
       border-radius: 4px;
+      margin-bottom: 20px;
       word-break: break-word;
     }
     #feedbackMessage.success {
       background-color: #d4edda;
       color: #155724;
-      border-color: #28a745;
-    }
-    #feedbackMessage.error {
-      background-color: #f8d7da;
-      color: #721c24;
-      border-color: #dc3545;
-    }
-    #feedbackMessage.info {
-      background-color: #e2e3e5;
-      color: #383d41;
-      border-color: #d6d8db;
+      border-left-color: #28a745;
     }
     .copy-btn {
       margin-top: 10px;
-      padding: 6px 12px;
-      background-color: #2196F3;
+      padding: 8px;
+      background: #007bff;
       color: #fff;
       border: none;
       border-radius: 4px;
       cursor: pointer;
     }
     .copy-btn:hover {
-      background-color: #1976D2;
+      background: #0056b3;
     }
   </style>
 </head>
 <body>
   <h2>Gerar Agendamento</h2>
   <form id="form">
-    <input type="text" id="consultor" placeholder="Nome do consultor" required />
     <input type="text" id="cliente" placeholder="Nome do cliente" required />
+    <input type="text" id="consultor" placeholder="Nome do consultor" required />
     <input type="date" id="data" required />
     <input type="time" id="hora" required />
     <input type="text" id="local" placeholder="Local" required />
@@ -106,37 +83,50 @@
 
   <script>
     const form = document.getElementById("form");
-    const consultorInput = document.getElementById("consultor");
-    const clienteInput = document.getElementById("cliente");
-    const dataInput = document.getElementById("data");
-    const horaInput = document.getElementById("hora");
-    const localInput = document.getElementById("local");
+    const submitButton = document.getElementById("submitButton");
     const linkAgendaDiv = document.getElementById("linkAgenda");
     const feedbackMessageDiv = document.getElementById("feedbackMessage");
-    const submitButton = document.getElementById("submitButton");
 
     function showFeedback(message, type = 'info') {
       feedbackMessageDiv.textContent = message;
-      feedbackMessageDiv.className = '';
-      feedbackMessageDiv.classList.add(type);
-      feedbackMessageDiv.style.display = 'block';
-      setTimeout(() => {
-        feedbackMessageDiv.style.display = 'none';
-      }, 5000);
+      feedbackMessageDiv.className = type;
+      setTimeout(() => feedbackMessageDiv.textContent = '', 5000);
+    }
+
+    async function encurtarLink(urlLongo) {
+      try {
+        const res = await fetch(`https://api.tinyurl.com/create`, {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer SUA_CHAVE_TINYURL", // Substitua por sua chave da TinyURL
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            url: urlLongo,
+            domain: "tinyurl.com"
+          })
+        });
+
+        const data = await res.json();
+        return data.data?.tiny_url || urlLongo;
+      } catch (err) {
+        console.error("Erro ao encurtar:", err);
+        return urlLongo;
+      }
     }
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       submitButton.disabled = true;
-      showFeedback('Salvando agendamento...', 'info');
+      showFeedback("Salvando agendamento...");
 
-      const consultor = consultorInput.value;
-      const cliente = clienteInput.value;
-      const data = dataInput.value;
-      const hora = horaInput.value;
-      const local = localInput.value;
+      const cliente = document.getElementById("cliente").value;
+      const consultor = document.getElementById("consultor").value;
+      const data = document.getElementById("data").value;
+      const hora = document.getElementById("hora").value;
+      const local = document.getElementById("local").value;
 
-      const body = { consultor, cliente, data, hora, local };
+      const body = { cliente, consultor, data, hora, local };
 
       try {
         const response = await fetch("/api/agendar", {
@@ -148,32 +138,32 @@
         const result = await response.json();
 
         if (result.status === 'salvo') {
-          showFeedback('Agendamento salvo com sucesso!', 'success');
+          showFeedback("Agendamento salvo com sucesso!", "success");
 
           const titulo = encodeURIComponent(`Agendamento com ${consultor}`);
           const localUrl = encodeURIComponent(local);
           const dataHoraInicio = new Date(`${data}T${hora}`);
           const dataHoraFim = new Date(dataHoraInicio.getTime() + 30 * 60000);
-          const inicio = dataHoraInicio.toISOString().replace(/[-:]|\.\d+/g, "");
-          const fim = dataHoraFim.toISOString().replace(/[-:]|\.\d+/g, "");
+          const inicio = dataHoraInicio.toISOString().replace(/-|:|\.\d+/g, "");
+          const fim = dataHoraFim.toISOString().replace(/-|:|\.\d+/g, "");
 
           const urlAgenda = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=${inicio}/${fim}&location=${localUrl}`;
+          const urlCurto = await encurtarLink(urlAgenda);
 
           linkAgendaDiv.innerHTML = `
             <p>Link para adicionar na agenda:</p>
-            <a href="${urlAgenda}" target="_blank">${urlAgenda}</a>
-            <button class="copy-btn" onclick="navigator.clipboard.writeText('${urlAgenda}')">Copiar Link</button>
+            <a href="${urlCurto}" target="_blank">${urlCurto}</a>
+            <br/>
+            <button class="copy-btn" onclick="navigator.clipboard.writeText('${urlCurto}')">Copiar Link</button>
           `;
 
           form.reset();
         } else {
-          showFeedback(`Erro ao salvar: ${result.message || 'Erro desconhecido'}`, 'error');
-          console.error("Erro Apps Script:", result);
+          showFeedback("Erro ao salvar: " + (result.message || "erro desconhecido"), "error");
         }
-
       } catch (error) {
-        showFeedback('Erro de comunicação. Verifique sua conexão ou a API.', 'error');
-        console.error("Erro na requisição:", error);
+        console.error(error);
+        showFeedback("Erro de comunicação com o servidor.", "error");
       } finally {
         submitButton.disabled = false;
       }
