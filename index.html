@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agendamentos</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 6px 0;
+      font-size: 1rem;
+    }
+    .agendamentos {
+      margin-top: 20px;
+    }
+    .item {
+      background: #f1f1f1;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-left: 4px solid #4CAF50;
+    }
+    a {
+      word-break: break-all;
+      display: block;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Gerar Agendamento</h2>
+  <form id="form">
+    <input type="text" id="consultor" placeholder="Nome do consultor" required />
+    <input type="date" id="data" required />
+    <input type="time" id="hora" required />
+    <input type="text" id="local" placeholder="Local" required />
+    <button type="submit">Gerar Link e Salvar</button>
+  </form>
+
+  <div id="linkAgenda"></div>
+
+  <h3>Agendamentos Registrados</h3>
+  <div id="agendamentos" class="agendamentos"></div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxquYzOzUG1-59sjXR6H7Irc6BEXGu96GZgvl35BunqZftx1G1B-91fDNaqlVixe-E/exec";
+
+    document.getElementById("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const consultor = document.getElementById("consultor").value;
+      const data = document.getElementById("data").value;
+      const hora = document.getElementById("hora").value;
+      const local = document.getElementById("local").value;
+
+      const body = { consultor, data, hora, local };
+
+      // Envia para o Google Sheets
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify(body),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      // Gera link para o Google Agenda
+      const titulo = encodeURIComponent(`Agendamento com ${consultor}`);
+      const localUrl = encodeURIComponent(local);
+      const dataHoraInicio = new Date(`${data}T${hora}`);
+      const dataHoraFim = new Date(dataHoraInicio.getTime() + 30 * 60000); // +30 minutos
+      const inicio = dataHoraInicio.toISOString().replace(/-|:|\.\d+/g, "");
+      const fim = dataHoraFim.toISOString().replace(/-|:|\.\d+/g, "");
+
+      const urlAgenda = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=${inicio}/${fim}&location=${localUrl};`
+
+      document.getElementById("linkAgenda").innerHTML = `
+        <p>Link para adicionar na agenda:</p>
+        <a href="${urlAgenda}" target="_blank">${urlAgenda}</a>
+      `;
+
+      e.target.reset();
+      carregarAgendamentos();
+    });
+
+    async function carregarAgendamentos() {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      const container = document.getElementById("agendamentos");
+      container.innerHTML = "";
+      data.reverse().forEach(item => {
+        container.innerHTML += `
+          <div class="item">
+            <strong>${item.Consultor}</strong><br>
+            Data: ${item.Data}<br>
+            Hora: ${item.Hora}<br>
+            Local: ${item.Local}
+          </div>
+        `;
+      });
+    }
+
+    carregarAgendamentos();
+  </script>
+</body>
+</html>
