@@ -4,14 +4,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { consultor, cliente, data, hora, local } = req.body;
+    const { cliente, consultor, data, hora, local } = req.body;
 
     const scriptUrl = "https://script.google.com/macros/s/AKfycbwuQt8Xog6e3t75rs5jOd2yzXvi-B3XPN3e986KsKvRhKVdEpR7aCqKt4S2qQzfE31C/exec";
 
     const response = await fetch(scriptUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ consultor, cliente, data, hora, local }),
+      body: JSON.stringify({ cliente, consultor, data, hora, local }),
     });
 
     const result = await response.json();
