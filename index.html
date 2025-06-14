@@ -105,6 +105,7 @@
   <h2>Gerar Agendamento</h2>
   <form id="form">
     <input type="text" id="consultor" placeholder="Nome do consultor" required />
+    <input type="text" id="cliente" placeholder="Nome do cliente" required />
     <input type="date" id="data" required />
     <input type="time" id="hora" required />
     <input type="text" id="local" placeholder="Local" required />
@@ -112,6 +113,7 @@
   </form>
 
   <div id="linkAgenda"></div>
+  <button id="copyButton" style="display:none">Copiar Link</button>
   <div id="feedbackMessage"></div>
 
   <h3>Agendamentos Registrados</h3>
@@ -120,10 +122,12 @@
   <script>
     const form = document.getElementById("form");
     const consultorInput = document.getElementById("consultor");
+    const clienteInput = document.getElementById("cliente");
     const dataInput = document.getElementById("data");
     const horaInput = document.getElementById("hora");
     const localInput = document.getElementById("local");
     const linkAgendaDiv = document.getElementById("linkAgenda");
+    const copyButton = document.getElementById("copyButton");
     const agendamentosContainer = document.getElementById("agendamentos");
     const feedbackMessageDiv = document.getElementById("feedbackMessage");
     const submitButton = document.getElementById("submitButton");
@@ -138,22 +142,23 @@
       }, 5000);
     }
 
+    async function encurtarLink(url) {
+      const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`);
+      return await res.text();
+    }
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       submitButton.disabled = true;
       showFeedback('Salvando agendamento...', 'info');
 
       const consultor = consultorInput.value;
+      const cliente = clienteInput.value;
       const data = dataInput.value;
       const hora = horaInput.value;
       const local = localInput.value;
 
-      const body = {
-        consultor,
-        data,
-        hora,
-        local
-      };
+      const body = { consultor, cliente, data, hora, local };
 
       try {
         const response = await fetch("/api/agendar", {
@@ -175,11 +180,21 @@
           const fim = dataHoraFim.toISOString().replace(/-|:|\.\d+/g, "");
 
           const urlAgenda = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=${inicio}/${fim}&location=${localUrl}`;
+          const linkEncurtado = await encurtarLink(urlAgenda);
 
           linkAgendaDiv.innerHTML = `
             <p>Link para adicionar na agenda:</p>
-            <a href="${urlAgenda}" target="_blank">${urlAgenda}</a>
+            <a href="${linkEncurtado}" target="_blank">${linkEncurtado}</a>
           `;
+
+          copyButton.style.display = 'inline-block';
+          copyButton.onclick = () => {
+            navigator.clipboard.writeText(linkEncurtado).then(() => {
+              showFeedback("Link copiado para a área de transferência!", "success");
+            }).catch(() => {
+              showFeedback("Falha ao copiar o link.", "error");
+            });
+          };
 
           form.reset();
         } else {
@@ -194,39 +209,6 @@
         submitButton.disabled = false;
       }
     });
-
-    // O código abaixo pode ser habilitado se você criar /api/agendamentos futuramente
-    /*
-    async function carregarAgendamentos() {
-      agendamentosContainer.innerHTML = 'Carregando agendamentos...';
-      try {
-        const res = await fetch("/api/agendamentos");
-        const data = await res.json();
-
-        if (data.length > 0) {
-          agendamentosContainer.innerHTML = "";
-          data.reverse().forEach(item => {
-            agendamentosContainer.innerHTML += `
-              <div class="item">
-                <strong>${item.Consultor || 'Não Informado'}</strong><br>
-                Data: ${item.Data || 'Não Informada'}<br>
-                Hora: ${item.Hora || 'Não Informada'}<br>
-                Local: ${item.Local || 'Não Informado'}
-              </div>
-            `;
-          });
-        } else {
-          agendamentosContainer.innerHTML = '<p>Nenhum agendamento registrado ainda.</p>';
-        }
-
-      } catch (error) {
-        showFeedback('Erro ao carregar agendamentos.', 'error');
-        console.error("Erro ao carregar:", error);
-      }
-    }
-
-    // carregarAgendamentos();
-    */
   </script>
 </body>
 </html>
