@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   try {
     const { cliente, consultor, data, hora, local } = req.body;
 
-    const scriptUrl = "https://script.google.com/macros/s/AKfycbwuQt8Xog6e3t75rs5jOd2yzXvi-B3XPN3e986KsKvRhKVdEpR7aCqKt4S2qQzfE31C/exec";
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbwY2RukW2-8utKQf5UPttNBFeY9zCvCm4zpS5DoCOqyH40nkvBOepvSpG-yXJWzKj6A/exec";
 
     const response = await fetch(scriptUrl, {
       method: "POST",
