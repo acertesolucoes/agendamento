@@ -172,7 +172,7 @@
 
         // Verifica se a resposta HTTP foi bem-sucedida (status 200-299)
         if (!response.ok) {
-            throw new Error(Erro de rede ou servidor: ${response.status} ${response.statusText});
+            throw new Error(`Erro de rede ou servidor: ${response.status} ${response.statusText}`);
         }
 
         const result = await response.json(); // Tenta parsear a resposta do Apps Script como JSON
@@ -182,15 +182,15 @@
           showFeedback('Agendamento salvo com sucesso!', 'success');
 
           // Gera o link para o Google Agenda
-          const titulo = encodeURIComponent(Agendamento com ${consultor});
+          const titulo = encodeURIComponent(`Agendamento com ${consultor}`);
           const localUrl = encodeURIComponent(local);
-          const dataHoraInicio = new Date(${data}T${hora});
+          const dataHoraInicio = new Date(`${data}T${hora}`);
           const dataHoraFim = new Date(dataHoraInicio.getTime() + 30 * 60000); // Adiciona 30 minutos
           // Formata as datas para o padrão do Google Agenda (YYYYMMDDTHHMMSSZ)
           const inicio = dataHoraInicio.toISOString().replace(/-|:|\.\d+/g, "");
           const fim = dataHoraFim.toISOString().replace(/-|:|\.\d+/g, "");
 
-          const urlAgenda = https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=${inicio}/${fim}&location=${localUrl};
+          const urlAgenda = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=${inicio}/${fim}&location=${localUrl};`
 
           linkAgendaDiv.innerHTML = `
             <p>Link para adicionar na agenda:</p>
@@ -201,7 +201,7 @@
           carregarAgendamentos(); // Recarrega a lista de agendamentos para mostrar o novo
         } else {
           // Se o Apps Script retornou um status de erro
-          showFeedback(Erro ao salvar: ${result.message || 'Erro desconhecido'}, 'error');
+          showFeedback(`Erro ao salvar: ${result.message || 'Erro desconhecido'}`, 'error');
           console.error("Erro retornado pelo Apps Script:", result);
         }
 
@@ -221,14 +221,14 @@
         
         // Verifica se a resposta HTTP foi bem-sucedida (status 200-299)
         if (!res.ok) {
-          throw new Error(Erro HTTP: ${res.status} ${res.statusText});
+          throw new Error(`Erro HTTP: ${res.status} ${res.statusText}`);
         }
 
         const data = await res.json(); // Tenta parsear a resposta como JSON
 
         // Se o Apps Script retornou um objeto com status 'erro' (pode acontecer na função doGet também)
         if (data && data.status === 'erro') { 
-            showFeedback(Erro ao carregar: ${data.message || 'Erro desconhecido'}, 'error');
+            showFeedback(`Erro ao carregar: ${data.message || 'Erro desconhecido'}`, 'error');
             agendamentosContainer.innerHTML = 'Não foi possível carregar os agendamentos.';
             return;
         }
